@@ -78,8 +78,8 @@
 		63D34F871DECF64A00D0C204 /* Proj6 */ = {
 			isa = PBXGroup;
 			children = (
-				63D34F9F1DECFE5F00D0C204 /* Proj6.h */,
 				63D34F9D1DECFE4A00D0C204 /* Makefile */,
+				63D34F9F1DECFE5F00D0C204 /* Proj6.h */,
 				63D34F881DECF64A00D0C204 /* oss.c */,
 			);
 			path = Proj6;
