@@ -15,7 +15,7 @@
 //#include <signal.h>         /* For signal handling */
 #include <getopt.h>         /* For command line options */
 //#include <string.h>         /* atoi(string) */
-//#include <ctype.h>          /* For isprint in getopt */
+#include <ctype.h>          /* For isprint, isdigit, atoi, etc in getopt */
 #include <time.h>           /* srand(unsigned) */
 //#include <sys/time.h>       /* POSIX standard, same as time.h */
 //#include <sys/shm.h>        /* For shared memory */
@@ -35,7 +35,7 @@ typedef struct page_memory {
     struct page_memory *nextPage;
 }pm_t;
 pm_t *head;
-int currentPointer, totalPages = 5;
+int currentPointer, frameSize = 5;
 enum {used = 1, notUsed = 0};
 
 /* Function prototypes for OSS */
@@ -43,9 +43,9 @@ pm_t *createClockMemoryFrame();
 int **createProcessesWithPages();
 bool pageAlreadyRequested(int, int, int *);
 void printArray(int **);
-bool faultOccurred(int, pm_t *);
+bool clockFaultOccurred(int, pm_t *);
 pm_t *replaceClockPage(pm_t *, int);
-void getOptimalSolution(int **);
+void getOptimalSolution(int **, int *);
 void freeMemory(int **);
 
 #endif /* Proj6_h */
