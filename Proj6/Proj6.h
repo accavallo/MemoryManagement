@@ -13,7 +13,7 @@
 #include <stdlib.h>         /* Some other basic functions such as exit and EXIT_FAILURE and srand() */
 //#include <unistd.h>         /* For execl */
 //#include <signal.h>         /* For signal handling */
-//#include <getopt.h>         /* For command line options */
+#include <getopt.h>         /* For command line options */
 //#include <string.h>         /* atoi(string) */
 //#include <ctype.h>          /* For isprint in getopt */
 #include <time.h>           /* srand(unsigned) */
@@ -35,13 +35,17 @@ typedef struct page_memory {
     struct page_memory *nextPage;
 }pm_t;
 pm_t *head;
-int currentPointer;
+int currentPointer, totalPages = 5;
 enum {used = 1, notUsed = 0};
 
 /* Function prototypes for OSS */
+pm_t *createClockMemoryFrame();
 int **createProcessesWithPages();
-void printArray(int **);
 bool pageAlreadyRequested(int, int, int *);
-pm_t *createMemoryFrame();
+void printArray(int **);
+bool faultOccurred(int, pm_t *);
+pm_t *replaceClockPage(pm_t *, int);
+void getOptimalSolution(int **);
+void freeMemory(int **);
 
 #endif /* Proj6_h */
