@@ -51,14 +51,6 @@ int main(int argc, const char * argv[]) {
     
     head = createClockMemoryFrame();
     pm_t *current = head;
-    /*
-    printf("Pages in current frame:\n");
-    for (i = 0; i < totalPages; i++) {
-        printf("%i ", current->pageNum);
-        current = current->nextPage;
-    }
-    printf("\n");
-    */
     
     switch (algorithm) {
         case 1:
@@ -89,15 +81,6 @@ int main(int argc, const char * argv[]) {
     
     printf("Faults:  %2i\n", faultCount);
     printf("Success: %2i\n", successCount);
-    
-    /*
-    printf("Pages in current frame after:\n");
-    for (i = 0; i < totalPages; i++) {
-        printf("%i ", current->pageNum);
-        current = current->nextPage;
-    }
-    printf("\n");
-    */
     
     getOptimalSolution(processArray, requests);
     
@@ -203,44 +186,69 @@ pm_t *replaceClockPage(pm_t *frame, int pageNeeded) {
 
 /* Find and show the optimal page replacement solution. */
 void getOptimalSolution(int **processes, int *requests) {
-    printf("The optimal solution.\n");
+    printf("\nThe optimal solution.\n");
     sleep(2);
-    int i, j, successCount = 0, faultCount = 0, totals[50] = {0}, frame[5] = {0}, maxDistance = 0, currentDistance, maxLocation, allPages[80], index = 0;
-
-    for (i = 0; i < 10; i++) {
-        for (j = 0; j < 8; j++) {
-            allPages[index] = processes[i][j];
-//            printf("%i ", processes[i][j]);
-            index++;
-//            totals[processes[i][j]-1]++;
+    int i, j, successCount = 0, faultCount = 0, frame[5] = {0}, maxDistance = 0, currentDistance, maxLocation = 0, index = 0;
+    printf("Page request order:\n");
+    int newLine = 0;
+    for (i = 0; i < 150; i++) {
+        newLine++;
+        printf("%2i ", requests[i]);
+        if (newLine == 15) {
+            newLine = 0;
+            printf("\n");
         }
     }
-//    printf("\n");
-//    for (i = 0; i < 80; i++) {
-//        printf("%i ", allPages[i]);
-//    }
-//    printf("\n");
+    printf("\n");
     index = 0;
-    //TODO: Calculate the distance between every element that is currently in the frame and its next occurrence. Then replace the element with the greatest distance between it and it's next occurrence.
-    for (i = 0; i < 80; i++) {
-//        index = 0;
-        for (j = 0; j < 5; j++) {
-            if (allPages[i] == frame[j]) {
-                successCount++;
-            } else {
+    for (i = 0; i < 150; i++) {
+        //Check if current page is in the current frame
+        if (pageIsInFrame(frame, requests[i])) {
+            //Increase the success count
+            successCount++;
+        } else {
+            //Increase the fault count
+            faultCount++;
+            maxDistance = 0;    //Reset max for the current iteration.
+            //Go through each page in the current frame and find the distance to its next call.
+            for (j = 0; j < 5; j++) {
                 index = i;
-                while (index < 150) {
-                    
-                    
+                currentDistance = 0;
+                if (frame[j] == 0) {    //I know the user won't notice a difference, but this will be quicker. Along with instances
+                    maxLocation = j;    //where empty pages within the frame would persist while other pages would be replaced.
+//                    printf("Breaking on %i...\n", j);
+//                    sleep(1);
+                    break;
+                }
+//                printf("Checking for next call for %i\n", frame[j]);
+                while (requests[index] != frame[j] && index < 150) {
                     index++;
+                    currentDistance++;
+                }
+                if (currentDistance > maxDistance) {
+                    maxDistance = currentDistance;
+                    maxLocation = j;
                 }
             }
-
+            //Replace the page with the greatest distance with the page requested.
+            frame[maxLocation] = requests[i];
         }
     }
     
     printf("Faults:  %2i\n", faultCount);
     printf("Success: %2i\n", successCount);
+}
+
+/* FOR THE OPTIMAL SOLUTON ONLY */
+bool pageIsInFrame(int frame[], int page) {
+    int i = 0;
+    for (; i < frameSize; i++) {
+        if (page == frame[i]) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 /* Free up the memory that's allocated. */

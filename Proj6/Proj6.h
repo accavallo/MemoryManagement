@@ -32,6 +32,7 @@
 typedef struct page_memory {
     int use;
     int pageNum;
+    long long unsigned lastUseTime;
     struct page_memory *nextPage;
 }pm_t;
 pm_t *head;
@@ -46,6 +47,7 @@ void printArray(int **);
 bool clockFaultOccurred(int, pm_t *);
 pm_t *replaceClockPage(pm_t *, int);
 void getOptimalSolution(int **, int *);
+bool pageIsInFrame(int [], int );
 void freeMemory(int **);
 
 #endif /* Proj6_h */
