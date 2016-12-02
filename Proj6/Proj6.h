@@ -17,7 +17,7 @@
 //#include <string.h>         /* atoi(string) */
 #include <ctype.h>          /* For isprint, isdigit, atoi, etc in getopt */
 #include <time.h>           /* srand(unsigned) */
-//#include <sys/time.h>       /* POSIX standard, same as time.h */
+#include <sys/time.h>       /* POSIX standard, same as time.h */
 //#include <sys/shm.h>        /* For shared memory */
 //#include <sys/msg.h>        /* For message passing */
 //#include <semaphore.h>      /* For semaphore usage */
@@ -29,10 +29,11 @@
 //#include <sys/stat.h>       /* For mode constants */
 
 /* Variables for OSS */
+#define MILLION 1000000
 typedef struct page_memory {
     int use;
     int pageNum;
-    long long unsigned lastUseTime;
+    long unsigned lastUseTime;
     struct page_memory *nextPage;
 }pm_t;
 pm_t *head;
@@ -53,8 +54,12 @@ pm_t *replaceClockPage(pm_t *, int);
 void getOptimalSolution(int *);
 bool pageIsInFrame(int [], int );
 /* 3 methods for the FIFO algorithm. One to create the frame, one to check for a fault, and one to replace a page. */
-pm_t *createFIFOMemoryFrame();
-bool fifoFaultOccurred(pm_t *, int );
+pm_t *createFIFOAndLRUMemoryFrame();
+bool fifoFaultOccurred(int);
 void replaceFifoPage(int);
+/* 2 methods for the LRU algorithm. The LRU is created the same way as the FIFO, so those two are combined. The other two
+   are specifically for the Least Recently Used algorithm. */
+bool lruFaultOccurred(int);
+void replaceLruPage(int);
 
 #endif /* Proj6_h */
