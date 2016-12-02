@@ -28,9 +28,11 @@ int main(int argc, const char * argv[]) {
                 algorithm = 3;
                 break;
             case 'p':
-                if (isdigit(atoi(optarg))) {
+                if (atoi(optarg)) {
                     frameSize = atoi(optarg);
-                }
+                } else
+                    printf("Expected Integer. Found %s instead.\n", optarg);
+                break;
             case '?':
                 if (optopt == 'p')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
@@ -46,15 +48,17 @@ int main(int argc, const char * argv[]) {
     for (i = optind; i < argc; i++) {
         printf("Non-option argument \"%s\"\n", argv[i]);
     }
-    printf("Page replacement algorithm set to ");
+    printf("Frame size set to %i\n", frameSize);
+    printf("Page replacement algorithm set to: ");
     if (algorithm == 1) {
         head = createClockMemoryFrame();
-        printf("clock.\n");
+        printf("Clock.\n");
     } else if (algorithm == 2) {
-        head = createFIFOMemoryFrame();
-        printf("first in, first out.\n");
+        head = createFIFOAndLRUMemoryFrame();
+        printf("First In, First Out.\n");
     } else {
-        printf("least recently used.\n");
+        head = createFIFOAndLRUMemoryFrame();
+        printf("Least Recently Used.\n");
     }
     printArray(processArray);
     sleep(2);
@@ -83,7 +87,7 @@ int main(int argc, const char * argv[]) {
             break;
         case 2:
             for (i = 0; i < 150; i++) {
-                if (fifoFaultOccurred(head, requests[i])) {
+                if (fifoFaultOccurred(requests[i])) {
                     replaceFifoPage(requests[i]);
                     faultCount++;
                 } else
@@ -91,9 +95,12 @@ int main(int argc, const char * argv[]) {
             }
             break;
         case 3:
-            printf("Least recently used not set up yet.\n");
             for (i = 0; i < 150; i++) {
-                
+                if (lruFaultOccurred(requests[i])) {
+                    replaceLruPage(requests[i]);
+                    faultCount++;
+                } else
+                    successCount++;
             }
             break;
         default:
@@ -208,7 +215,10 @@ pm_t *replaceClockPage(pm_t *frame, int pageNeeded) {
 void getOptimalSolution(int *requests) {
     printf("\nThe optimal solution.\n");
     sleep(2);
-    int i, j, successCount = 0, faultCount = 0, frame[5] = {0}, maxDistance = 0, currentDistance, maxLocation = 0, index = 0;
+    int i, j, successCount = 0, faultCount = 0, frame[frameSize], maxDistance = 0, currentDistance, maxLocation = 0, index = 0;
+    for (i = 0; i < frameSize; i++)
+        frame[i] = 0;
+    
     printf("Page request order:\n");
     int newLine = 0;
     for (i = 0; i < 150; i++) {
@@ -231,7 +241,7 @@ void getOptimalSolution(int *requests) {
             faultCount++;
             maxDistance = 0;    //Reset max for the current iteration.
             //Go through each page in the current frame and find the distance to its next call.
-            for (j = 0; j < 5; j++) {
+            for (j = 0; j < frameSize; j++) {
                 index = i;
                 currentDistance = 0;
                 if (frame[j] == 0) {    //I know the user won't notice a difference, but this will be quicker. Along with instances
@@ -272,10 +282,11 @@ bool pageIsInFrame(int frame[], int page) {
 }
 
 /* Create the First in, first out frame */
-pm_t *createFIFOMemoryFrame() {
+pm_t *createFIFOAndLRUMemoryFrame() {
     pm_t *frame = (pm_t *)malloc(sizeof(pm_t)), *current;
     frame->pageNum = 0;
     frame->use = notUsed;
+    frame->lastUseTime = 99999999999999;
     frame->nextPage = NULL;
     current = frame;
     int i;
@@ -291,8 +302,8 @@ pm_t *createFIFOMemoryFrame() {
 }
 
 /* Check if the page is in the current frame for the First In, First Out algorithm. */
-bool fifoFaultOccurred(pm_t *frame, int page) {
-    pm_t *current = frame;
+bool fifoFaultOccurred(int page) {
+    pm_t *current = head;
     while (current) {
         if (current->pageNum == page) {
             return false;
@@ -315,6 +326,51 @@ void replaceFifoPage(int page) {
     temp->pageNum = page;
     temp->use = notUsed;
     current->nextPage = temp;
+}
+
+/* Check if a page fault has occurred with the Least Recently Used algorithm. */
+bool lruFaultOccurred(int page) {
+    pm_t *current = head;
+    int i = 0;
+    struct timeval myTime;
+    for (; i < frameSize; i++) {
+        if (current->pageNum == page) {
+            gettimeofday(&myTime, NULL);
+            current->lastUseTime = myTime.tv_sec * MILLION + myTime.tv_usec;
+            return false;
+        }
+    }
+    return true;
+}
+
+/* A fault has occurred, so we need to determine which page has been used the least recent and replace it. */
+void replaceLruPage(int page) {
+    pm_t *ptr = head;
+    int i, pageToReplace = 0;
+    long greatestTimeDifference = 0, currentTimeDifference = 0;
+    struct timeval myTime;
+    gettimeofday(&myTime, NULL);
+    for (i = 0; i < frameSize; i++) {
+        if (ptr->pageNum == 0) {
+            pageToReplace = 0;
+            break;
+        }
+        currentTimeDifference = (myTime.tv_sec * MILLION + myTime.tv_usec) - ptr->lastUseTime;
+        if (currentTimeDifference > greatestTimeDifference) {
+            greatestTimeDifference = currentTimeDifference;
+            pageToReplace = ptr->pageNum;
+        }
+        ptr = ptr->nextPage;
+    }
+    ptr = head;
+    while (ptr) {
+        if (ptr->pageNum == pageToReplace) {
+            ptr->pageNum = page;
+            ptr->lastUseTime = myTime.tv_sec * MILLION + myTime.tv_usec;
+            break;
+        }
+        ptr = ptr->nextPage;
+    }
 }
 
 /* Free up the memory that's allocated. */
