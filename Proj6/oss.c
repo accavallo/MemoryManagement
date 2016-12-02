@@ -10,7 +10,6 @@ int main(int argc, const char * argv[]) {
     /* Create the processes with unique page requests within each process. */
     
     int **processArray = createProcessesWithPages(), *requests, i, j, option, faultCount = 0, successCount = 0, algorithm = 1, index = 0;
-    printArray(processArray);
     requests = (int *)malloc(sizeof(int) * 150);
     
     while ((option = getopt(argc, (char **)argv, "hflp:")) != -1) {
@@ -32,6 +31,14 @@ int main(int argc, const char * argv[]) {
                 if (isdigit(atoi(optarg))) {
                     frameSize = atoi(optarg);
                 }
+            case '?':
+                if (optopt == 'p')
+                    fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint (optopt))
+                    fprintf(stderr, "Unknown option '-%c'.\n", optopt);
+                else
+                    fprintf(stderr, "Unknown option character '%s'.\n", optarg);
+                break;
             default:
                 break;
         }
@@ -41,39 +48,53 @@ int main(int argc, const char * argv[]) {
     }
     printf("Page replacement algorithm set to ");
     if (algorithm == 1) {
+        head = createClockMemoryFrame();
         printf("clock.\n");
     } else if (algorithm == 2) {
+        head = createFIFOMemoryFrame();
         printf("first in, first out.\n");
     } else {
         printf("least recently used.\n");
     }
+    printArray(processArray);
     sleep(2);
     
-    head = createClockMemoryFrame();
     pm_t *current = head;
+    /* Regardless of which page replacement algorithm is used, the actual page request order won't change. */
+    index = 0;
+    for (i = 0; i < 10; i++) {
+        for (j = 0; j < 15; j++) {
+            int pageRequested = rand() % 8;
+            requests[index] = processArray[i][pageRequested];
+            index++;
+        }
+    }
     
     switch (algorithm) {
         case 1:
             /* This will probably need to change to accommodate the 15 page requests chosen at random per process */
-            for (i = 0; i < 10; i++) {
-                for (j = 0; j < 15; j++) {
-                    int pageRequested = rand() % 8;
-                    if (clockFaultOccurred(processArray[i][pageRequested], current)) {
-                        current = replaceClockPage(current, processArray[i][pageRequested]);
-                        faultCount++;
-                    } else {
-                        successCount++;
-                    }
-                    requests[index] = processArray[i][pageRequested];
-                    index++;
-                }
+            for (i = 0; i < 150; i++) {
+                if (clockFaultOccurred(requests[i], current)) {
+                    current = replaceClockPage(current, requests[i]);
+                    faultCount++;
+                } else
+                    successCount++;
             }
             break;
         case 2:
-            printf("First in, first out not set up yet.\n");
+            for (i = 0; i < 150; i++) {
+                if (fifoFaultOccurred(head, requests[i])) {
+                    replaceFifoPage(requests[i]);
+                    faultCount++;
+                } else
+                    successCount++;
+            }
             break;
         case 3:
             printf("Least recently used not set up yet.\n");
+            for (i = 0; i < 150; i++) {
+                
+            }
             break;
         default:
             break;
@@ -82,9 +103,9 @@ int main(int argc, const char * argv[]) {
     printf("Faults:  %2i\n", faultCount);
     printf("Success: %2i\n", successCount);
     
-    getOptimalSolution(processArray, requests);
+    getOptimalSolution(requests);
     
-    freeMemory(processArray);
+    freeMemory(processArray, requests);
     return 0;
 }
 
@@ -153,7 +174,6 @@ void printArray(int **array) {
 
 /* Determine whether a page fault has occurred based on the page the current process is requesting and what is currently in memory. */
 bool clockFaultOccurred(int page, pm_t *frame) {
-//    int count = 0;
     pm_t *start = frame;
     while (1) {
         if (page == frame->pageNum) {
@@ -185,7 +205,7 @@ pm_t *replaceClockPage(pm_t *frame, int pageNeeded) {
 }
 
 /* Find and show the optimal page replacement solution. */
-void getOptimalSolution(int **processes, int *requests) {
+void getOptimalSolution(int *requests) {
     printf("\nThe optimal solution.\n");
     sleep(2);
     int i, j, successCount = 0, faultCount = 0, frame[5] = {0}, maxDistance = 0, currentDistance, maxLocation = 0, index = 0;
@@ -239,7 +259,7 @@ void getOptimalSolution(int **processes, int *requests) {
     printf("Success: %2i\n", successCount);
 }
 
-/* FOR THE OPTIMAL SOLUTON ONLY */
+/* FOR THE OPTIMAL SOLUTON ONLY. The other 3 are using a queue, therefore won't be useable for Clock, LRU, or FIFO. */
 bool pageIsInFrame(int frame[], int page) {
     int i = 0;
     for (; i < frameSize; i++) {
@@ -251,18 +271,65 @@ bool pageIsInFrame(int frame[], int page) {
     return false;
 }
 
+/* Create the First in, first out frame */
+pm_t *createFIFOMemoryFrame() {
+    pm_t *frame = (pm_t *)malloc(sizeof(pm_t)), *current;
+    frame->pageNum = 0;
+    frame->use = notUsed;
+    frame->nextPage = NULL;
+    current = frame;
+    int i;
+    for (i = 0; i < frameSize - 1; i++) {
+        pm_t *temp = (pm_t *)malloc(sizeof(pm_t));
+        temp->nextPage = NULL;
+        temp->use = notUsed;
+        temp->pageNum = 0;
+        current->nextPage = temp;
+        current = current->nextPage;
+    }
+    return frame;
+}
+
+/* Check if the page is in the current frame for the First In, First Out algorithm. */
+bool fifoFaultOccurred(pm_t *frame, int page) {
+    pm_t *current = frame;
+    while (current) {
+        if (current->pageNum == page) {
+            return false;
+        }
+        current = current->nextPage;
+    }
+    return true;
+}
+
+/* A fault occurred for the first in, first out algorithm. Now we need to replace the first page and add one to the end. */
+void replaceFifoPage(int page) {
+    pm_t *delNode = head, *current = head, *temp;
+    head = head->nextPage;
+    free(delNode);
+    while (current->nextPage) {
+        current = current->nextPage;
+    }
+    temp = (pm_t *)malloc(sizeof(pm_t));
+    temp->nextPage = NULL;
+    temp->pageNum = page;
+    temp->use = notUsed;
+    current->nextPage = temp;
+}
+
 /* Free up the memory that's allocated. */
-void freeMemory(int **array) {
+void freeMemory(int **processArray, int *requests) {
     int i;
     /* Free the memory allocated for the processes */
     for (i = 0; i < 10; i++)
-        free(array[i]);
-    free(array);
+        free(processArray[i]);
+    free(processArray);
+    /* Free the memory allocated for the page request array */
+    free(requests);
     /* Free the memory allocated for the frame */
     pm_t *deleteNode = head;
     i = 0;
     while (i < frameSize) {
-//        printf("deleteNode->pageNum: %i\n", deleteNode->pageNum);
         pm_t *pointer = deleteNode->nextPage;
         free(deleteNode);
         deleteNode = pointer;
