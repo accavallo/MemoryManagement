@@ -40,14 +40,21 @@ int currentPointer, frameSize = 5;
 enum {used = 1, notUsed = 0};
 
 /* Function prototypes for OSS */
-pm_t *createClockMemoryFrame();
+/* General use methods that can be used regardless of the page replacement algorithm. */
 int **createProcessesWithPages();
 bool pageAlreadyRequested(int, int, int *);
 void printArray(int **);
+void freeMemory(int **, int *);
+/* 3 methods for the clock algorithm. One to create the frame, one to check for a fault, and one to do a page replacement. */
+pm_t *createClockMemoryFrame();
 bool clockFaultOccurred(int, pm_t *);
 pm_t *replaceClockPage(pm_t *, int);
-void getOptimalSolution(int **, int *);
+/*  */
+void getOptimalSolution(int *);
 bool pageIsInFrame(int [], int );
-void freeMemory(int **);
+/* 3 methods for the FIFO algorithm. One to create the frame, one to check for a fault, and one to replace a page. */
+pm_t *createFIFOMemoryFrame();
+bool fifoFaultOccurred(pm_t *, int );
+void replaceFifoPage(int);
 
 #endif /* Proj6_h */
