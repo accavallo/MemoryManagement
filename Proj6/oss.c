@@ -337,6 +337,7 @@ bool lruFaultOccurred(int page) {
             current->lastUseTime = myTime.tv_sec * MILLION + myTime.tv_usec;
             return false;
         }
+        current = current->nextPage;
     }
     return true;
 }
@@ -365,7 +366,7 @@ void replaceLruPage(int page) {
         if (ptr->pageNum == pageToReplace) {
             ptr->pageNum = page;
             ptr->lastUseTime = myTime.tv_sec * MILLION + myTime.tv_usec;
-            printf("%lu\n", ptr->lastUseTime);
+//            printf("%lu\n", ptr->lastUseTime);
             break;
         }
         ptr = ptr->nextPage;
