@@ -16,10 +16,10 @@ int main(int argc, const char * argv[]) {
         switch (option) {
             case 'h':
                 printf("Display help\n");
-                printf("-h displays this help menu.\n");
-                printf("-f sets the page replacement algorithm to first in, first out. Default is set to clock replacement.\n");
-                printf("-l sets the page replacement algorithm to least recently used. Default is set to clock replacement.\n");
-                printf("-p pages sets the total number of pages within the frame. Default is set to 5.\n");
+                printf("'-h' displays this help menu.\n");
+                printf("'-f' sets the page replacement algorithm to first in, first out. Default is set to clock replacement.\n");
+                printf("'-l' sets the page replacement algorithm to least recently used. Default is set to clock replacement.\n");
+                printf("'-p pages' sets the total number of pages within the frame. Default is set to 5.\n");
                 break;
             case 'f':
                 algorithm = 2;
@@ -231,6 +231,7 @@ void getOptimalSolution(int *requests) {
     }
     printf("\n");
     index = 0;
+    /* Go through the entire request list to find the optimal solution. */
     for (i = 0; i < 150; i++) {
         //Check if current page is in the current frame
         if (pageIsInFrame(frame, requests[i])) {
@@ -246,11 +247,8 @@ void getOptimalSolution(int *requests) {
                 currentDistance = 0;
                 if (frame[j] == 0) {    //I know the user won't notice a difference, but this will be quicker. Along with instances
                     maxLocation = j;    //where empty pages within the frame would persist while other pages would be replaced.
-//                    printf("Breaking on %i...\n", j);
-//                    sleep(1);
                     break;
                 }
-//                printf("Checking for next call for %i\n", frame[j]);
                 while (requests[index] != frame[j] && index < 150) {
                     index++;
                     currentDistance++;
@@ -286,7 +284,7 @@ pm_t *createFIFOAndLRUMemoryFrame() {
     pm_t *frame = (pm_t *)malloc(sizeof(pm_t)), *current;
     frame->pageNum = 0;
     frame->use = notUsed;
-    frame->lastUseTime = 99999999999999;
+    frame->lastUseTime = 999999999999999999L;
     frame->nextPage = NULL;
     current = frame;
     int i;
@@ -367,6 +365,7 @@ void replaceLruPage(int page) {
         if (ptr->pageNum == pageToReplace) {
             ptr->pageNum = page;
             ptr->lastUseTime = myTime.tv_sec * MILLION + myTime.tv_usec;
+            printf("%lu\n", ptr->lastUseTime);
             break;
         }
         ptr = ptr->nextPage;
